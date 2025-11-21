@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  api:
+    image: ghcr.io/legallink/api:staging
+    env_file:
+      - ".env staging"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

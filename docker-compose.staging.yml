@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: dockerfile.staging
+    env_file:
+      - ".env staging"
+    command: uvicorn main_app.main:app --host 0.0.0.0 --port 8080
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

@@ -1,0 +1,6 @@
+APP_ENV=local
+DATABASE_URL=postgresql://local_user:local_password@localhost/local_db
+SECRET_KEY=local_secret_key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+PORT=8001

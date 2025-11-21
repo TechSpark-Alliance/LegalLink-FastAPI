@@ -1,0 +1,6 @@
+APP_ENV=production
+DATABASE_URL=postgresql://prod_user:prod_password@prod-host/prod_db
+SECRET_KEY=
+DEBUG=False
+ALLOWED_HOSTS=api.legallink.com
+PORT=80
