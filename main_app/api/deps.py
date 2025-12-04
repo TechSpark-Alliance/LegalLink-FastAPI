@@ -1,8 +1,6 @@
-from fastapi import Depends
-from sqlalchemy.orm import Session
-from main_app.db.session import get_db
-
-
-def get_db_session() -> Session:
-    """Dependency to get database session"""
-    return next(get_db())
+def get_db_session():
+  """
+  Placeholder for DB session dependency.
+  Mongo is used directly via request.app.mongodb, so this is unused.
+  """
+  return None
