@@ -10,6 +10,7 @@ class RegisterUser(BaseModel):
     state: Optional[str] = None
     city: Optional[str] = None
     role: Literal["client", "lawyer"] = "client"
+    profile_image: Optional[str] = None
     # Lawyer-specific (optional for clients)
     sijil_certificate: Optional[str] = None  # file ref or name (required for lawyers)
     sijil_certificate_url: Optional[str] = None
@@ -34,6 +35,7 @@ class UserPublic(BaseModel):
     state: Optional[str] = None
     city: Optional[str] = None
     role: Optional[str] = None
+    profile_image: Optional[str] = None
     sijil_certificate: Optional[str] = None
     sijil_certificate_url: Optional[str] = None
     law_firm: Optional[str] = None
