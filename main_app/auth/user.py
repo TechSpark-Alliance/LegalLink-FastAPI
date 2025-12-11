@@ -6,7 +6,7 @@ from utils.helpers import convert_objectid
 from utils.email import get_email_service
 from main_app.core.config import settings
 from main_app.session_utils.session_functions import create_or_get_session, deactivate_session, get_active_session
-from main_app.auth.dependencies import require_lawyer
+from main_app.auth.dependencies import require_lawyer, get_session
 from bson import ObjectId
 
 router = APIRouter()
@@ -132,7 +132,7 @@ async def logout_user(request: Request, token: str):
 
 
 @router.get("/me")
-async def get_me(request: Request, session: dict = Depends(require_lawyer)):
+async def get_me(request: Request, session: dict = Depends(get_session)):
     db = request.app.mongodb
     try:
         user_id = ObjectId(session["user_id"])
@@ -145,7 +145,7 @@ async def get_me(request: Request, session: dict = Depends(require_lawyer)):
 
 
 @router.put("/me")
-async def update_me(request: Request, payload: dict, session: dict = Depends(require_lawyer)):
+async def update_me(request: Request, payload: dict, session: dict = Depends(get_session)):
     """
     Update editable lawyer fields. Frontend currently read-only, but kept for future.
     """
@@ -167,8 +167,14 @@ async def update_me(request: Request, payload: dict, session: dict = Depends(req
         "sijil_certificate",
         "law_firm_certificate",
         "profile_image",
+        "password",
     }
-    update_data = {k: v for k, v in payload.items() if k in allowed_fields}
+    update_data = {k: v for k, v in payload.items() if k in allowed_fields and v not in (None, "")}
+    if "password" in update_data:
+        pw_bytes = str(update_data["password"]).encode("utf-8")
+        if len(pw_bytes) > 72:
+            raise HTTPException(status_code=400, detail="Password too long (bcrypt max 72 bytes)")
+        update_data["password"] = bcrypt.hashpw(pw_bytes, bcrypt.gensalt()).decode("utf-8")
     if not update_data:
         user = await db["users"].find_one({"_id": user_id})
         if not user:
