@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from datetime import datetime
 import bcrypt
+from bson import ObjectId
 from models.users import RegisterUser, LoginInput, UserPublic
 from utils.helpers import convert_objectid
 from utils.email import get_email_service
@@ -120,6 +121,46 @@ async def logout_user(request: Request, token: str):
     db = request.app.mongodb
     await deactivate_session(db, token)
     return {"message": "Logged out successfully"}
+
+
+@router.get("/me")
+async def get_me(request: Request):
+    db = request.app.mongodb
+    auth_header = request.headers.get("Authorization", "")
+    token = ""
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        token = request.query_params.get("token", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing token")
+    session = await get_active_session(db, token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
+    user = await db.users.find_one({"_id": ObjectId(session["user_id"])})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    safe_user = convert_objectid(user)
+    safe_user.pop("password", None)
+    return {
+        "user": UserPublic(
+            id=safe_user.get("_id", ""),
+            full_name=safe_user.get("full_name", ""),
+            email=safe_user.get("email", ""),
+            phone=safe_user.get("phone"),
+            state=safe_user.get("state"),
+            city=safe_user.get("city"),
+            role=safe_user.get("role"),
+            sijil_certificate=safe_user.get("sijil_certificate"),
+            law_firm=safe_user.get("law_firm"),
+            law_firm_certificate=safe_user.get("law_firm_certificate"),
+            expertise=safe_user.get("expertise"),
+            years_of_experience=safe_user.get("years_of_experience"),
+            about=safe_user.get("about"),
+            is_verified=safe_user.get("status", {}).get("is_verified", False),
+            is_active=safe_user.get("status", {}).get("is_active", True),
+        )
+    }
 
 
 @router.get("/session")
