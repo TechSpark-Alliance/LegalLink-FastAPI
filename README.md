@@ -43,21 +43,29 @@ LegalLink-FastAPI
 ## Installation
 
 1. Clone the repository:
+
    ```
    git clone <repository-url>
    cd LegalLink-FastAPI
    ```
 
-2. Install the dependencies:
+2. Set up environment variables by copying `.env.example` to `.env` and modifying as needed.
+
+   ```
+   python -m venv .venv
+   .\.venv\Scripts\Activate
+
+   ```
+
+3. Install the dependencies:
    ```
    pip install -r requirements.txt
    ```
 
-3. Set up environment variables by copying `.env.example` to `.env` and modifying as needed.
-
 ## Usage
 
 To run the application, execute the following command:
+
 ```
 uvicorn main_app.main:app --reload
 ```
@@ -67,6 +75,7 @@ Visit `http://127.0.0.1:8000/docs` to access the interactive API documentation.
 ## Testing
 
 To run the tests, use:
+
 ```
 pytest
 ```

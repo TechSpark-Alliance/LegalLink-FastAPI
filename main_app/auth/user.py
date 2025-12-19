@@ -1,14 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from datetime import datetime
 import bcrypt
+from bson import ObjectId
 from models.users import RegisterUser, LoginInput, UserPublic
 from utils.helpers import convert_objectid
 from utils.email import get_email_service
 from main_app.core.config import settings
 from main_app.session_utils.session_functions import create_or_get_session, deactivate_session, get_active_session
-from main_app.auth.dependencies import require_lawyer, get_session
-from bson import ObjectId
-
 router = APIRouter()
 
 
@@ -131,25 +129,64 @@ async def logout_user(request: Request, token: str):
     return {"message": "Logged out successfully"}
 
 
+def _extract_token(request: Request) -> str:
+    auth_header = request.headers.get("Authorization", "")
+    token = ""
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        token = request.query_params.get("token", "")
+    return token
+
+
 @router.get("/me")
-async def get_me(request: Request, session: dict = Depends(get_session)):
+async def get_me(request: Request):
     db = request.app.mongodb
-    try:
-        user_id = ObjectId(session["user_id"])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid session")
-    user = await db["users"].find_one({"_id": user_id})
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing token")
+    session = await get_active_session(db, token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
+    user = await db.users.find_one({"_id": ObjectId(session["user_id"])})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"user": _sanitize_user(user)}
+    safe_user = _sanitize_user(user)
+    return {
+        "user": UserPublic(
+            id=safe_user.get("_id", ""),
+            full_name=safe_user.get("full_name", ""),
+            email=safe_user.get("email", ""),
+            phone=safe_user.get("phone"),
+            state=safe_user.get("state"),
+            city=safe_user.get("city"),
+            role=safe_user.get("role"),
+            sijil_certificate=safe_user.get("sijil_certificate"),
+            law_firm=safe_user.get("law_firm"),
+            law_firm_certificate=safe_user.get("law_firm_certificate"),
+            expertise=safe_user.get("expertise"),
+            years_of_experience=safe_user.get("years_of_experience"),
+            about=safe_user.get("about"),
+            profile_image=safe_user.get("profile_image"),
+            is_verified=safe_user.get("status", {}).get("is_verified", False),
+            is_active=safe_user.get("status", {}).get("is_active", True),
+        )
+    }
 
 
 @router.put("/me")
-async def update_me(request: Request, payload: dict, session: dict = Depends(get_session)):
+async def update_me(request: Request, payload: dict):
     """
-    Update editable lawyer fields. Frontend currently read-only, but kept for future.
+    Token-based profile update for editable fields.
     """
     db = request.app.mongodb
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing token")
+    session = await get_active_session(db, token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
+
     try:
         user_id = ObjectId(session["user_id"])
     except Exception:
@@ -170,19 +207,21 @@ async def update_me(request: Request, payload: dict, session: dict = Depends(get
         "password",
     }
     update_data = {k: v for k, v in payload.items() if k in allowed_fields and v not in (None, "")}
+
     if "password" in update_data:
         pw_bytes = str(update_data["password"]).encode("utf-8")
         if len(pw_bytes) > 72:
             raise HTTPException(status_code=400, detail="Password too long (bcrypt max 72 bytes)")
         update_data["password"] = bcrypt.hashpw(pw_bytes, bcrypt.gensalt()).decode("utf-8")
+
     if not update_data:
-        user = await db["users"].find_one({"_id": user_id})
+        user = await db.users.find_one({"_id": user_id})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         return {"user": _sanitize_user(user)}
 
     update_data["updated_at"] = datetime.utcnow()
-    updated = await db["users"].find_one_and_update(
+    updated = await db.users.find_one_and_update(
         {"_id": user_id},
         {"$set": update_data},
         return_document=True,
