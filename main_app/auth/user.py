@@ -7,6 +7,7 @@ from utils.helpers import convert_objectid
 from utils.email import get_email_service
 from main_app.core.config import settings
 from main_app.session_utils.session_functions import create_or_get_session, deactivate_session, get_active_session
+from bson import ObjectId
 router = APIRouter()
 
 
@@ -238,3 +239,20 @@ async def validate_session(request: Request, token: str):
     if not session:
         raise HTTPException(status_code=401, detail="Session expired or invalid")
     return {"session": session}
+
+
+@router.get("/{user_id}")
+async def get_user_public(request: Request, user_id: str):
+    """
+    Public user lookup by id (sanitized).
+    """
+    db = request.app.mongodb
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user id")
+    user = await db.users.find_one({"_id": oid})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    safe_user = _sanitize_user(user)
+    return {"user": safe_user}
