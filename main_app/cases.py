@@ -283,6 +283,21 @@ async def add_progress(request: Request, case_id: str, payload: ProgressCreate, 
     return {"progress": convert_objectid(entry)}
 
 
+@router.delete("/cases/{case_id}/progress/{progress_id}")
+async def delete_progress(case_id: str, progress_id: str, session: dict = Depends(require_lawyer), request: Request = None):
+    db = request.app.mongodb
+    try:
+        _cid = ObjectId(case_id)
+        _pid = ObjectId(progress_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid id")
+
+    result = await db["case_progress"].delete_one({"_id": _pid, "case_id": case_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Progress entry not found")
+    return {"detail": "deleted"}
+
+
 class ClientCreate(BaseModel):
     full_name: str
     email: str
