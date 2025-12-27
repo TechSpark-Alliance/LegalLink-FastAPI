@@ -118,6 +118,7 @@ async def login_user(request: Request, login_data: LoginInput):
             profile_image=safe_user.get("profile_image"),
             is_verified=safe_user.get("status", {}).get("is_verified", False),
             is_active=safe_user.get("status", {}).get("is_active", True),
+            subscription=safe_user.get("subscription"),
         ),
         "session": session,
     }
@@ -171,6 +172,7 @@ async def get_me(request: Request):
             profile_image=safe_user.get("profile_image"),
             is_verified=safe_user.get("status", {}).get("is_verified", False),
             is_active=safe_user.get("status", {}).get("is_active", True),
+            subscription=safe_user.get("subscription"),
         )
     }
 

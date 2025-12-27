@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Literal, List
+from models.billing import SubscriptionInfo
 
 
 class RegisterUser(BaseModel):
@@ -46,3 +47,4 @@ class UserPublic(BaseModel):
     about: Optional[str] = None
     is_verified: bool = False
     is_active: bool = True
+    subscription: Optional[SubscriptionInfo] = None
