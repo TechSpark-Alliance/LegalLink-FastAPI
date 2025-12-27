@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     sender_email: str = "noreply@legallink.com"
     sender_name: str = "LegalLink"
 
+    stripe_secret_key: str = "" # STRIPE_SECRET_KEY
+    stripe_webhook_secret: str = "" # STRIPE_WEBHOOK_SECRET
+    stripe_price_id: str = "" # STRIPE_PRICE_ID
+    stripe_success_url: str = "http://localhost:5173/lawyer/profile"
+    stripe_cancel_url: str = "http://localhost:5173/lawyer/profile"
+    stripe_portal_return_url: str = "http://localhost:5173/lawyer/profile"
+    stripe_trial_days: int = 30
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
 
